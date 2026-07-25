@@ -1,0 +1,20 @@
+# Copy this file to application.properties and fill in your Amadeus credentials.
+# Sign up (free): https://developers.amadeus.com/register
+
+amadeus.api.key=YOUR_API_KEY
+amadeus.api.secret=YOUR_API_SECRET
+amadeus.api.baseUrl=https://test.api.amadeus.com
+
+# Price filter (INR)
+price.maxInr=20000
+
+# Search window: days from today for departure / return
+search.departureDaysAhead=30
+search.returnDaysAfterDeparture=14
+search.flexibleDays=3
+
+# Comma-separated IATA codes for Indian origin airports
+search.originAirports=DEL,BOM,BLR,MAA,HYD,CCU,AMD
+
+# Optional: restrict to specific European airports (empty = use built-in list)
+# search.europeAirports=CDG,AMS,FCO,BCN,VIE,PRG,BUD,WAW

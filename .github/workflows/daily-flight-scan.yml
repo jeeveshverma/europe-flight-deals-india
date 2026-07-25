@@ -1,0 +1,37 @@
+name: Daily Europe Flight Scan
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build
+        run: mvn -q package -DskipTests
+
+      - name: Run flight scan
+        env:
+          AMADEUS_KEY: ${{ secrets.AMADEUS_KEY }}
+          AMADEUS_SECRET: ${{ secrets.AMADEUS_SECRET }}
+        run: |
+          cat > src/main/resources/application.properties <<EOF
+          amadeus.api.key=$AMADEUS_KEY
+          amadeus.api.secret=$AMADEUS_SECRET
+          amadeus.api.baseUrl=https://test.api.amadeus.com
+          price.maxInr=20000
+          search.departureDaysAhead=30
+          search.returnDaysAfterDeparture=14
+          search.originAirports=DEL,BOM,BLR,MAA,HYD,CCU,AMD
+          EOF
+          java -jar target/europe-flight-deals-1.0.0.jar
