@@ -153,7 +153,7 @@ europe-flight-deals/
 
 - Uses [Amadeus Self-Service API](https://developers.amadeus.com/) (free test tier: ~2,000 calls/month)
 - Test environment (`test.api.amadeus.com`) returns real-ish data; switch to `api.amadeus.com` for production
-- The script requests `currencyCode=INR` directly from Amadeus when possible
+- The script requests `currencyCode=INR` directly from Amadeus. If an offer still comes back in another currency, it is converted at a fixed approximate rate (EUR 90, USD 84, GBP 106) and a warning is logged
 - Rate limiting: 250ms delay between searches to stay within API limits
 
 ## License

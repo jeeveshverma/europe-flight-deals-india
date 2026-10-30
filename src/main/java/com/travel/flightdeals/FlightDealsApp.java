@@ -22,7 +22,7 @@ public final class FlightDealsApp {
         AppConfig config = AppConfig.load();
         HttpClient httpClient =
                 HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
-        CurrencyConverter currencyConverter = new CurrencyConverter(httpClient, config.apiBaseUrl());
+        CurrencyConverter currencyConverter = new CurrencyConverter();
         AmadeusFlightService flightService = new AmadeusFlightService(httpClient, config, currencyConverter);
 
         List<Airport> europeDestinations = CurrencyConverter.EuropeAirports.resolve(config);

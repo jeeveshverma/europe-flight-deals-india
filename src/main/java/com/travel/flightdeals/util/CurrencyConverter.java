@@ -1,78 +1,38 @@
 package com.travel.flightdeals.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.travel.flightdeals.config.AppConfig;
 import com.travel.flightdeals.model.Airport;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Converts offer prices to INR. Searches ask Amadeus for {@code currencyCode=INR}, so this is only a
+ * safety net for an offer that comes back in another currency: it applies a fixed, approximate rate and
+ * logs a warning, because a fare near the threshold may then be misjudged.
+ */
 public final class CurrencyConverter {
 
     private static final Logger log = LoggerFactory.getLogger(CurrencyConverter.class);
-    private static final double FALLBACK_INR_PER_EUR = 90.0;
-    private static final double FALLBACK_INR_PER_USD = 84.0;
-
-    private final HttpClient httpClient;
-    private final String apiBaseUrl;
-    private final Map<String, Double> cache = new ConcurrentHashMap<>();
-
-    public CurrencyConverter(HttpClient httpClient, String apiBaseUrl) {
-        this.httpClient = httpClient;
-        this.apiBaseUrl = apiBaseUrl;
-    }
+    static final double INR_PER_EUR = 90.0;
+    static final double INR_PER_USD = 84.0;
+    static final double INR_PER_GBP = 106.0;
 
     public double toInr(double amount, String currency) {
         if (currency == null || currency.isBlank() || "INR".equalsIgnoreCase(currency)) {
             return amount;
         }
-        double rate = getRateToInr(currency.toUpperCase());
+        String code = currency.toUpperCase();
+        double rate = approximateRateToInr(code);
+        log.warn("Offer priced in {} instead of INR; converting at a fixed approximate rate of {}", code, rate);
         return amount * rate;
     }
 
-    private double getRateToInr(String currency) {
-        return cache.computeIfAbsent(currency, this::fetchRate);
-    }
-
-    private double fetchRate(String currency) {
-        try {
-            URI uri = URI.create(
-                    apiBaseUrl + "/v1/analytics/itinerary-price-metrics?originIataCode=DEL"
-                            + "&destinationIataCode=CDG&currencyCode=" + currency);
-            HttpRequest request =
-                    HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(15)).GET().build();
-            HttpResponse<String> response =
-                    httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                JsonNode root = JsonParser.mapper().readTree(response.body());
-                JsonNode metrics = root.path("data").path(0).path("priceMetrics");
-                if (metrics.isArray() && !metrics.isEmpty()) {
-                    double sample = metrics.get(0).path("amount").asDouble();
-                    if (sample > 0) {
-                        return fallbackRate(currency);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.debug("Could not fetch live FX for {}: {}", currency, e.getMessage());
-        }
-        return fallbackRate(currency);
-    }
-
-    private static double fallbackRate(String currency) {
+    private static double approximateRateToInr(String currency) {
         return switch (currency) {
-            case "EUR" -> FALLBACK_INR_PER_EUR;
-            case "USD" -> FALLBACK_INR_PER_USD;
-            case "GBP" -> 106.0;
-            default -> FALLBACK_INR_PER_EUR;
+            case "USD" -> INR_PER_USD;
+            case "GBP" -> INR_PER_GBP;
+            default -> INR_PER_EUR;
         };
     }
 
